@@ -1,4 +1,14 @@
-"""OpenAPI documentation for the API."""
+"""OpenAPI documentation for the UStock API.
+
+This module configures the OpenAPI schema generation using drf_yasg and defines
+URL patterns for the API documentation interfaces:
+  - JSON schema (without UI)
+  - Swagger UI
+  - ReDoc UI
+
+The generated schema provides detailed API information including title, version,
+description, terms of service, contact and license information.
+"""
 
 from django.urls import path
 from drf_yasg import openapi
@@ -32,16 +42,19 @@ schema_view = get_schema_view(
 )
 
 urlpatterns = [
+    # Endpoint for JSON schema without a UI: e.g. /swagger.json or /swagger.yaml
     path(
         "swagger<format>/",
         schema_view.without_ui(cache_timeout=0),
         name="schema-json",
     ),
+    # Endpoint for Swagger UI: displays interactive API documentation.
     path(
         "",
         schema_view.with_ui("swagger", cache_timeout=0),
         name="schema-swagger-ui",
     ),
+    # Endpoint for ReDoc UI: alternative API documentation interface.
     path(
         "redoc/",
         schema_view.with_ui("redoc", cache_timeout=0),
