@@ -15,8 +15,41 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
+from drf_yasg import openapi
+from drf_yasg.views import get_schema_view
+from rest_framework import permissions
+
+api_v1 = 'api/v1/'
+
+
+schema_view = get_schema_view(
+    openapi.Info(
+        title="YFinance API",
+        default_version='v1',
+        description="API для оборачивания функционала yfinance",
+    ),
+    public=True,
+    permission_classes=[permissions.AllowAny],
+)
+
+
+admin_urlpatterns = [
+    path('admin/', admin.site.urls),
+]
+
+apps_urlpatterns = [
+    path(f'{api_v1}tickers/', include('apps.tickers.urls')),
+    path(f'{api_v1}financials/', include('apps.financials.urls')),
+    path(f'{api_v1}options/', include('apps.options.urls')),
+    # Пути для документации:
+]
+docs_urlpatterns = [
+    path("", include("utils.docs")),
+]
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    *admin_urlpatterns,
+    *apps_urlpatterns,
+    *docs_urlpatterns,
 ]
