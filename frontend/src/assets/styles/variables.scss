@@ -1,0 +1,63 @@
+// Theme Colors from Logo
+$primary-color: #e08200;
+$primary-dark: #c16900;
+$primary-light: #f7c73a;
+$secondary-color: #1f2937;
+$accent-color: #f0bc74;
+
+// Text Colors
+$text-primary: #212121;
+$text-secondary: #757575;
+$text-disabled: #bdbdbd;
+
+// Background Colors
+$bg-primary: #ffffff;
+$bg-secondary: #f5f7fa;
+$bg-dark: #1f2937;
+
+// UI Colors
+$positive: #00c853;
+$negative: #ff5252;
+$warning: #f7c73a;
+$info: #2196f3;
+
+// Chart Colors
+$chart-up: #00c853;
+$chart-down: #ff5252;
+$chart-primary: #e08200;
+$chart-secondary: #f0bc74;
+$chart-grid: #e0e0e0;
+
+// Spacing
+$spacing-xs: 4px;
+$spacing-sm: 8px;
+$spacing-md: 16px;
+$spacing-lg: 24px;
+$spacing-xl: 32px;
+$spacing-xxl: 48px;
+
+// Borders & Shadows
+$border-radius: 8px;
+$box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+$box-shadow-hover: 0 4px 15px rgba(0, 0, 0, 0.15);
+
+// Typography
+$font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+$font-size-xs: 12px;
+$font-size-sm: 14px;
+$font-size-md: 16px;
+$font-size-lg: 18px;
+$font-size-xl: 20px;
+$font-size-xxl: 24px;
+
+// Transitions
+$transition-quick: 0.15s ease;
+$transition-default: 0.25s ease;
+$transition-slow: 0.4s ease;
+
+// Breakpoints
+$breakpoint-xs: 576px;
+$breakpoint-sm: 768px;
+$breakpoint-md: 992px;
+$breakpoint-lg: 1200px;
+$breakpoint-xl: 1400px;
