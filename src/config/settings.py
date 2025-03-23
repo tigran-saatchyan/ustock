@@ -41,11 +41,14 @@ LOCAL_APPS = [
     'apps.financials.apps.FinancialsConfig',
     'apps.options.apps.OptionsConfig',
     'apps.tickers.apps.TickersConfig',
+    'apps.custom_auth.apps.CustomAuthConfig',
+    'apps.personal_finance.apps.PersonalFinanceConfig',
 ]
 
 THIRD_PARTY_APPS = [
     'rest_framework',
     'drf_yasg',
+    'corsheaders',
 ]
 
 INSTALLED_APPS = [
@@ -57,12 +60,17 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',  # Add CORS middleware
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+# CORS settings
+CORS_ALLOW_ALL_ORIGINS = True  # For development only, set to False in production
+CORS_ALLOW_CREDENTIALS = True
 
 ROOT_URLCONF = 'config.urls'
 
@@ -145,8 +153,14 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',
     ],
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.BasicAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
     'DEFAULT_RENDERER_CLASSES': [
         'utils.json_custom.CustomJSONRenderer',
     ],
-    # Дополнительные параметры (например, пагинация) можно добавить здесь
+    'EXCEPTION_HANDLER': 'rest_framework.views.exception_handler',
+    'NON_FIELD_ERRORS_KEY': 'error',  # This will return validation errors with 'error' key
+    'DEFAULT_THROTTLE_CLASSES': []
 }
