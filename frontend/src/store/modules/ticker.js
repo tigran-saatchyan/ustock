@@ -209,9 +209,24 @@ export default {
           interval
         );
         
+        // Log the response for debugging
+        console.log('History data response:', response.data);
+        
         // Only update state if this is still the most recent request
         if (this.lastHistoryRequestId === requestId) {
-          commit('SET_HISTORY_DATA', response.data.data || []);
+          // Make sure we're getting the data from the right place in the response
+          let historyData = [];
+          
+          if (response.data && response.data.data) {
+            historyData = response.data.data;
+            console.log('Found history data in response.data.data');
+          } else if (response.data && Array.isArray(response.data)) {
+            historyData = response.data;
+            console.log('Found history data directly in response.data');
+          }
+          
+          console.log(`Got ${historyData.length} data points for chart`);
+          commit('SET_HISTORY_DATA', historyData);
         } else {
           console.log('Ignoring outdated history data response');
         }

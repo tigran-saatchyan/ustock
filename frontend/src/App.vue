@@ -87,7 +87,7 @@ export default {
 // Theme Support
 .theme-dark {
   --bg-primary: #{$bg-dark};
-  --bg-secondary: #{darken($bg-dark, 3%)};
+  --bg-secondary: #1a242f;
   --text-primary: #f5f5f5;
   --text-secondary: #bdbdbd;
   --text-disabled: #757575;

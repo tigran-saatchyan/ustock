@@ -42,6 +42,7 @@ LOCAL_APPS = [
     'apps.options.apps.OptionsConfig',
     'apps.tickers.apps.TickersConfig',
     'apps.custom_auth.apps.CustomAuthConfig',
+    'apps.personal_finance.apps.PersonalFinanceConfig',
 ]
 
 THIRD_PARTY_APPS = [
@@ -159,5 +160,7 @@ REST_FRAMEWORK = {
     'DEFAULT_RENDERER_CLASSES': [
         'utils.json_custom.CustomJSONRenderer',
     ],
-    # Дополнительные параметры (например, пагинация) можно добавить здесь
+    'EXCEPTION_HANDLER': 'rest_framework.views.exception_handler',
+    'NON_FIELD_ERRORS_KEY': 'error',  # This will return validation errors with 'error' key
+    'DEFAULT_THROTTLE_CLASSES': []
 }

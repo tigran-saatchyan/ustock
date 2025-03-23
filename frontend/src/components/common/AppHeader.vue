@@ -17,7 +17,7 @@
             type="text" 
             v-model="searchQuery" 
             @keyup.enter="searchTicker"
-            placeholder="Search ticker symbol..." 
+            :placeholder="$t('ticker.search')" 
             class="p-inputtext" 
           />
         </span>
@@ -25,12 +25,27 @@
           class="p-button p-button-primary" 
           @click="searchTicker"
         >
-          <span class="p-button-label">Search</span>
+          <span class="p-button-label">{{ $t('common.search') }}</span>
         </button>
       </div>
 
       <!-- Navigation and Theme Toggle -->
       <div class="app-header__actions">
+        <!-- Navigation Menu -->
+        <nav class="app-header__nav">
+          <router-link 
+            to="/finance" 
+            class="app-header__nav-link"
+            :class="{ 'app-header__nav-link--active': isFinanceActive }"
+          >
+            <i class="pi pi-wallet"></i>
+            <span>{{ $t('navigation.personalFinance') }}</span>
+          </router-link>
+        </nav>
+
+        <!-- Language Switcher -->
+        <language-switcher class="language-switcher" />
+        
         <!-- Theme Toggle -->
         <button 
           class="p-button p-button-text p-button-rounded"
@@ -49,7 +64,7 @@
           <div class="user-menu__dropdown" :class="{ 'user-menu__dropdown--active': isDropdownOpen }">
             <button class="user-menu__item" @click="logout">
               <i class="pi pi-sign-out"></i>
-              <span>Logout</span>
+              <span>{{ $t('auth.logout') }}</span>
             </button>
           </div>
         </div>
@@ -60,17 +75,27 @@
 
 <script>
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { useStore } from 'vuex';
+import LanguageSwitcher from '@/components/common/LanguageSwitcher.vue';
 
 export default {
   name: 'AppHeader',
+  components: {
+    LanguageSwitcher
+  },
   
   setup() {
     const router = useRouter();
+    const route = useRoute();
     const store = useStore();
     const searchQuery = ref('');
     const isDropdownOpen = ref(false);
+    
+    // Check if current route is under the finance section
+    const isFinanceActive = computed(() => 
+      route.path.startsWith('/finance')
+    );
     
     const isDarkTheme = computed(() => store.getters.isDarkTheme);
     const isAuthenticated = computed(() => store.getters['auth/isAuthenticated']);
@@ -141,7 +166,8 @@ export default {
       username,
       isDropdownOpen,
       toggleDropdown,
-      logout
+      logout,
+      isFinanceActive
     };
   }
 };
@@ -208,6 +234,47 @@ export default {
     .p-button {
       margin-left: $spacing-sm;
     }
+    
+    .language-switcher {
+      margin-right: $spacing-sm;
+      margin-left: $spacing-sm;
+    }
+  }
+  
+  &__nav {
+    display: flex;
+    align-items: center;
+    margin-right: $spacing-md;
+    
+    &-link {
+      display: flex;
+      align-items: center;
+      padding: $spacing-sm $spacing-md;
+      border-radius: $border-radius;
+      text-decoration: none;
+      color: $text-primary;
+      transition: $transition-quick;
+      font-weight: 500;
+      background-color: $bg-secondary;
+      
+      i {
+        margin-right: $spacing-xs;
+        color: $primary-color;
+      }
+      
+      &:hover {
+        background-color: rgba($primary-color, 0.1);
+      }
+      
+      &--active {
+        background-color: rgba($primary-color, 0.1);
+        font-weight: 600;
+        
+        i, span {
+          color: $primary-color;
+        }
+      }
+    }
   }
 }
 
@@ -222,6 +289,7 @@ export default {
     padding: $spacing-xs $spacing-md;
     border-radius: $border-radius;
     transition: $transition-quick;
+    background-color: $bg-secondary;
     
     &:hover {
       background-color: rgba($primary-color, 0.1);
@@ -236,6 +304,7 @@ export default {
     span {
       font-weight: 500;
       color: $text-primary;
+      margin-right: $spacing-xs;
     }
   }
   

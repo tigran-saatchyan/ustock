@@ -4,33 +4,33 @@
       <div class="app-footer__content">
         <div class="app-footer__brand">
           <h2 class="app-footer__title">StockTic</h2>
-          <p>Financial market data powered by Yahoo Finance API</p>
+          <p>{{ $t('footer.poweredBy') }}</p>
         </div>
         
         <div class="app-footer__links">
           <div class="app-footer__links-section">
-            <h3>Resources</h3>
+            <h3>{{ $t('footer.resources') }}</h3>
             <ul>
-              <li><a href="#">Documentation</a></li>
-              <li><a href="#">API Reference</a></li>
-              <li><a href="#">Support</a></li>
+              <li><a href="#">{{ $t('footer.documentation') }}</a></li>
+              <li><a href="#">{{ $t('footer.apiReference') }}</a></li>
+              <li><a href="#">{{ $t('footer.support') }}</a></li>
             </ul>
           </div>
           
           <div class="app-footer__links-section">
-            <h3>Legal</h3>
+            <h3>{{ $t('footer.legal') }}</h3>
             <ul>
-              <li><a href="#">Terms of Service</a></li>
-              <li><a href="#">Privacy Policy</a></li>
-              <li><a href="#">Disclaimer</a></li>
+              <li><a href="#">{{ $t('footer.termsOfService') }}</a></li>
+              <li><a href="#">{{ $t('footer.privacyPolicy') }}</a></li>
+              <li><a href="#">{{ $t('footer.disclaimer') }}</a></li>
             </ul>
           </div>
         </div>
       </div>
       
       <div class="app-footer__bottom">
-        <p>&copy; {{ currentYear }} StockTic - All rights reserved</p>
-        <p>Data provided by Yahoo Finance</p>
+        <p>{{ $t('footer.copyright', { year: currentYear }) }}</p>
+        <p>{{ $t('footer.dataProvider') }}</p>
       </div>
     </div>
   </footer>
@@ -38,16 +38,21 @@
 
 <script>
 import { computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 export default {
   name: 'AppFooter',
   
   setup() {
+    // Get i18n
+    const { t } = useI18n();
+    
     // Get current year for copyright notice
     const currentYear = computed(() => new Date().getFullYear());
     
     return {
-      currentYear
+      currentYear,
+      t
     };
   }
 };

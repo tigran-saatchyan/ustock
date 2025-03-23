@@ -4,11 +4,9 @@
       <!-- Hero Section -->
       <section class="hero">
         <div class="hero__content">
-          <h1 class="hero__title">
-            Financial Market Data <span class="hero__title-highlight">at Your Fingertips</span>
-          </h1>
+          <h1 class="hero__title" v-html="$t('home.title')"></h1>
           <p class="hero__subtitle">
-            Access comprehensive stock market data, analyze companies, track performance, and make informed investment decisions with UStock.
+            {{ $t('home.subtitle') }}
           </p>
           
           <div class="hero__search">
@@ -18,7 +16,7 @@
                 type="text" 
                 v-model="searchQuery" 
                 @keyup.enter="searchTicker"
-                placeholder="Enter a ticker symbol..." 
+                :placeholder="$t('home.searchPlaceholder')" 
                 class="p-inputtext" 
               />
             </span>
@@ -26,13 +24,13 @@
               class="p-button p-button-primary" 
               @click="searchTicker"
             >
-              <span class="p-button-label">Search</span>
+              <span class="p-button-label">{{ $t('common.search') }}</span>
             </button>
           </div>
           
           <!-- Popular Tickers -->
           <div class="hero__popular">
-            <span class="hero__popular-label">Popular:</span>
+            <span class="hero__popular-label">{{ $t('home.popularTickers') }}:</span>
             <div class="hero__popular-tickers">
               <button 
                 v-for="ticker in popularTickers" 
@@ -49,16 +47,16 @@
       
       <!-- Features Section -->
       <section class="features">
-        <h2 class="section-title">Platform Features</h2>
+        <h2 class="section-title">{{ $t('home.platformFeatures') }}</h2>
         
         <div class="features__grid">
           <div class="feature-card">
             <div class="feature-card__icon">
               <i class="pi pi-chart-line"></i>
             </div>
-            <h3 class="feature-card__title">Stock Price Data</h3>
+            <h3 class="feature-card__title">{{ $t('home.features.stockPrice.title') }}</h3>
             <p class="feature-card__description">
-              Access historical price data with customizable date ranges and intervals for comprehensive analysis.
+              {{ $t('home.features.stockPrice.description') }}
             </p>
           </div>
           
@@ -66,9 +64,9 @@
             <div class="feature-card__icon">
               <i class="pi pi-file-excel"></i>
             </div>
-            <h3 class="feature-card__title">Financial Statements</h3>
+            <h3 class="feature-card__title">{{ $t('home.features.financialStatements.title') }}</h3>
             <p class="feature-card__description">
-              Analyze balance sheets, income statements, and cash flow statements for informed investment decisions.
+              {{ $t('home.features.financialStatements.description') }}
             </p>
           </div>
           
@@ -76,9 +74,9 @@
             <div class="feature-card__icon">
               <i class="pi pi-percentage"></i>
             </div>
-            <h3 class="feature-card__title">Options Trading</h3>
+            <h3 class="feature-card__title">{{ $t('home.features.optionsTrading.title') }}</h3>
             <p class="feature-card__description">
-              Explore available options contracts with detailed data on calls, puts, and expiration dates.
+              {{ $t('home.features.optionsTrading.description') }}
             </p>
           </div>
           
@@ -86,9 +84,9 @@
             <div class="feature-card__icon">
               <i class="pi pi-megaphone"></i>
             </div>
-            <h3 class="feature-card__title">News Integration</h3>
+            <h3 class="feature-card__title">{{ $t('home.features.newsIntegration.title') }}</h3>
             <p class="feature-card__description">
-              Stay informed with the latest news and updates related to your investment portfolio.
+              {{ $t('home.features.newsIntegration.description') }}
             </p>
           </div>
           
@@ -96,9 +94,9 @@
             <div class="feature-card__icon">
               <i class="pi pi-chart-bar"></i>
             </div>
-            <h3 class="feature-card__title">Analyst Insights</h3>
+            <h3 class="feature-card__title">{{ $t('home.features.analystInsights.title') }}</h3>
             <p class="feature-card__description">
-              Access recommendations and target prices from top financial analysts for better decision making.
+              {{ $t('home.features.analystInsights.description') }}
             </p>
           </div>
           
@@ -106,17 +104,28 @@
             <div class="feature-card__icon">
               <i class="pi pi-calendar"></i>
             </div>
-            <h3 class="feature-card__title">Event Calendar</h3>
+            <h3 class="feature-card__title">{{ $t('home.features.eventCalendar.title') }}</h3>
             <p class="feature-card__description">
-              Track important dates for earnings reports, dividend payments, and other corporate events.
+              {{ $t('home.features.eventCalendar.description') }}
             </p>
+          </div>
+          
+          <div class="feature-card" @click="goToFinance">
+            <div class="feature-card__icon">
+              <i class="pi pi-wallet"></i>
+            </div>
+            <h3 class="feature-card__title">{{ $t('home.features.personalFinance.title') }}</h3>
+            <p class="feature-card__description">
+              {{ $t('home.features.personalFinance.description') }}
+            </p>
+            <button class="feature-card__button">{{ $t('home.getStarted') }}</button>
           </div>
         </div>
       </section>
       
       <!-- Recent Tickers Section -->
       <section class="recent-tickers" v-if="recentTickers.length > 0">
-        <h2 class="section-title">Recently Viewed</h2>
+        <h2 class="section-title">{{ $t('home.recentSearches') }}</h2>
         
         <div class="recent-tickers__list">
           <transition-group name="ticker-list">
@@ -180,18 +189,28 @@ export default {
       router.push({ name: 'ticker', params: { symbol: ticker } });
     };
     
+    // Navigate to personal finance
+    const goToFinance = () => {
+      router.push({ name: 'finance' });
+    };
+    
     return {
       searchQuery,
       popularTickers,
       recentTickers,
       searchTicker,
-      goToTicker
+      goToTicker,
+      goToFinance
     };
   }
 };
 </script>
 
 <style lang="scss" scoped>
+:deep(.title-highlight) {
+  color: #f7941d;
+  position: relative;
+}
 .home-view {
   min-height: 100vh;
 }
@@ -200,7 +219,7 @@ export default {
   font-size: $font-size-xxl;
   font-weight: 700;
   margin-bottom: $spacing-xl;
-  color: $secondary-color;
+  color: $primary-color;
   text-align: center;
 }
 
@@ -387,6 +406,22 @@ export default {
   &__description {
     color: $text-secondary;
     line-height: 1.5;
+  }
+  
+  &__button {
+    margin-top: $spacing-md;
+    padding: $spacing-xs $spacing-md;
+    background-color: $primary-color;
+    color: white;
+    border: none;
+    border-radius: $border-radius;
+    font-weight: 500;
+    cursor: pointer;
+    transition: $transition-quick;
+    
+    &:hover {
+      background-color: $primary-dark;
+    }
   }
 }
 

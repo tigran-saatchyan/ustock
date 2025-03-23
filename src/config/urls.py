@@ -42,6 +42,7 @@ apps_urlpatterns = [
     path(f'{api_v1}tickers/', include('apps.tickers.urls')),
     path(f'{api_v1}financials/', include('apps.financials.urls')),
     path(f'{api_v1}options/', include('apps.options.urls')),
+    path(f'{api_v1}personal-finance/', include('apps.personal_finance.urls')),
     
     # Auth endpoints
     path(f'{api_v1}auth/', include('apps.custom_auth.urls')),

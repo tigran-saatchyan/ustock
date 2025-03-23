@@ -4,48 +4,49 @@
       <h3 class="price-chart__title">{{ title }}</h3>
       <div class="price-chart__controls">
         <div class="price-chart__period-selector">
-          <button 
-            v-for="period in periodOptions" 
-            :key="period.value"
-            :class="['period-button', { active: selectedPeriod === period.value }]"
-            @click="setPeriod(period.value)"
+          <button
+              v-for="period in periodOptions"
+              :key="period.value"
+              :class="['period-button', { active: selectedPeriod === period.value }]"
+              @click.prevent="setPeriod(period.value)"
+              type="button"
           >
             {{ period.label }}
           </button>
         </div>
         <div class="price-chart__type-selector">
-          <button 
-            v-for="type in chartTypes" 
-            :key="type.value"
-            :class="['chart-type-button', { active: chartType === type.value }]"
-            @click="setChartType(type.value)"
+          <button
+              v-for="type in chartTypes"
+              :key="type.value"
+              :class="['chart-type-button', { active: chartType === type.value }]"
+              @click.prevent="setChartType(type.value)"
+              type="button"
           >
             <i :class="type.icon"></i>
           </button>
         </div>
       </div>
     </div>
-    
-    <div class="price-chart__container" ref="chartContainer">
-      <canvas ref="chartCanvas"></canvas>
-      <div v-if="!hasData" class="price-chart__no-data">
-        No price data available
-      </div>
-      <div v-if="loading" class="price-chart__loading">
-        <i class="pi pi-spin pi-spinner"></i>
-      </div>
+
+    <div class="price-chart__container" ref="chartContainer"></div>
+
+    <div v-if="loading" class="price-chart__loading">
+      <i class="pi pi-spin pi-spinner"></i>
+    </div>
+    <div v-if="!hasData && !loading" class="price-chart__no-data">
+      No price data available
     </div>
   </div>
 </template>
 
 <script>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
-import Chart from 'chart.js/auto';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import dayjs from 'dayjs';
+import { createChart } from 'lightweight-charts';
 
 export default {
   name: 'PriceChart',
-  
+
   props: {
     data: {
       type: Array,
@@ -60,17 +61,22 @@ export default {
       default: false
     }
   },
-  
+
   emits: ['period-change'],
-  
+
   setup(props, { emit }) {
-    const chartCanvas = ref(null);
     const chartContainer = ref(null);
     const chart = ref(null);
+    let candleSeries = null;
+    let lineSeries = null;
+    let volumeSeries = null;
+    let resizeObserver = null;
+
     const selectedPeriod = ref('1m');
     const chartType = ref('line');
-    
-    // Chart options and settings
+
+    const hasData = computed(() => props.data && props.data.length > 0);
+
     const periodOptions = [
       { label: '1D', value: '1d' },
       { label: '1W', value: '1w' },
@@ -81,475 +87,432 @@ export default {
       { label: '1Y', value: '1y' },
       { label: '5Y', value: '5y' }
     ];
-    
+
     const chartTypes = [
       { label: 'Line', value: 'line', icon: 'pi pi-chart-line' },
       { label: 'Candlestick', value: 'candlestick', icon: 'pi pi-chart-bar' }
     ];
-    
-    // Computed properties
-    const title = computed(() => {
-      return props.ticker 
-        ? `${props.ticker} Price Chart` 
-        : 'Price Chart';
-    });
-    
-    const hasData = computed(() => {
-      return props.data && props.data.length > 0 && props.data.some(item => 
-        item.close !== undefined && item.close !== null
-      );
-    });
-    
-    // Methods
+
+    const title = computed(() => props.ticker ? `${props.ticker} Price Chart` : 'Price Chart');
+
     const setPeriod = (period) => {
-      // Only update if period actually changed to prevent multiple requests
       if (selectedPeriod.value !== period) {
         selectedPeriod.value = period;
         emit('period-change', getPeriodDates(period));
       }
     };
-    
+
     const setChartType = (type) => {
-      chartType.value = type;
-      if (chart.value) {
-        destroyChart();
+      if (chartType.value !== type) {
+        chartType.value = type;
         renderChart();
       }
     };
-    
+
     const getPeriodDates = (period) => {
       const end = dayjs();
       let start;
-      
+
       switch (period) {
         case '1d':
           start = end.subtract(1, 'day');
           return { start: start.format('YYYY-MM-DD'), end: end.format('YYYY-MM-DD'), interval: '5m' };
-        
         case '1w':
           start = end.subtract(1, 'week');
           return { start: start.format('YYYY-MM-DD'), end: end.format('YYYY-MM-DD'), interval: '1h' };
-          
         case '1m':
           start = end.subtract(1, 'month');
           return { start: start.format('YYYY-MM-DD'), end: end.format('YYYY-MM-DD'), interval: '1d' };
-          
         case '3m':
           start = end.subtract(3, 'month');
           return { start: start.format('YYYY-MM-DD'), end: end.format('YYYY-MM-DD'), interval: '1d' };
-          
         case '6m':
           start = end.subtract(6, 'month');
           return { start: start.format('YYYY-MM-DD'), end: end.format('YYYY-MM-DD'), interval: '1d' };
-          
         case 'ytd':
-          start = dayjs(`${end.year()}-01-01`);
+          start = dayjs().startOf('year');
           return { start: start.format('YYYY-MM-DD'), end: end.format('YYYY-MM-DD'), interval: '1d' };
-          
         case '1y':
           start = end.subtract(1, 'year');
           return { start: start.format('YYYY-MM-DD'), end: end.format('YYYY-MM-DD'), interval: '1d' };
-          
         case '5y':
           start = end.subtract(5, 'year');
-          return { start: start.format('YYYY-MM-DD'), end: end.format('YYYY-MM-DD'), interval: '1wk' };
-          
+          return { start: start.format('YYYY-MM-DD'), end: end.format('YYYY-MM-DD'), interval: '1w' };
         default:
           start = end.subtract(1, 'month');
           return { start: start.format('YYYY-MM-DD'), end: end.format('YYYY-MM-DD'), interval: '1d' };
       }
     };
-    
-    const renderChart = () => {
-      // Don't attempt to render if we don't have a canvas or no data
-      if (!chartCanvas.value) {
-        console.warn('Chart canvas not available');
-        return;
-      }
-      
-      if (!hasData.value) {
-        console.warn('No chart data available to render');
-        return;
-      }
-      
-      try {
-        const ctx = chartCanvas.value.getContext('2d');
-        
-        if (chartType.value === 'line') {
-          renderLineChart(ctx);
-        } else if (chartType.value === 'candlestick') {
-          renderCandlestickChart(ctx);
-        }
-      } catch (error) {
-        console.error('Error rendering chart:', error);
-      }
-    };
-    
-    const renderLineChart = (ctx) => {
-      try {
-        // Filter out invalid data points to prevent chart errors
-        const validData = props.data.filter(item => 
-          item && item.close !== undefined && item.close !== null && item.date
-        );
-        
-        const priceData = validData.map(item => item.close);
-        const labels = validData.map(item => dayjs(item.date).format('MMM D'));
-        
-        // Make sure we have valid data before creating the chart
-        if (!labels.length || !priceData.length) {
-          console.warn('No valid data points for line chart');
-          return;
-        }
-        
-        chart.value = new Chart(ctx, {
-          type: 'line',
-          data: {
-            labels: labels,
-            datasets: [{
-              label: `${props.ticker} Price`,
-              data: priceData,
-              borderColor: '#e08200',  // Updated to match our theme
-              backgroundColor: 'rgba(224, 130, 0, 0.1)',
-              fill: {
-                target: 'origin',
-                above: 'rgba(224, 130, 0, 0.1)'
-              },
-              tension: 0.1,
-              pointRadius: 0,
-              pointHoverRadius: 5,
-              pointHoverBackgroundColor: '#e08200',
-              borderWidth: 2
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: {
-                display: false
-              },
-              tooltip: {
-                mode: 'index',
-                intersect: false,
-                callbacks: {
-                  label: function(context) {
-                    return `Price: $${context.raw.toFixed(2)}`;
-                  }
-                }
-              }
-            },
-            scales: {
-              x: {
-                grid: {
-                  display: false
-                }
-              },
-              y: {
-                grid: {
-                  color: 'rgba(0, 0, 0, 0.05)'
-                },
-                ticks: {
-                  callback: function(value) {
-                    return '$' + value.toFixed(2);
-                  }
-                }
-              }
-            },
-            interaction: {
-              mode: 'index',
-              intersect: false
-            }
-          }
+
+    // Обработка изменения размера окна
+    const handleResize = () => {
+      if (chart.value && chartContainer.value) {
+        chart.value.applyOptions({
+          width: chartContainer.value.clientWidth
         });
-      } catch (error) {
-        console.error('Error rendering line chart:', error);
       }
     };
-    
-    const renderCandlestickChart = (ctx) => {
-      try {
-        // Filter out invalid data points to prevent chart errors
-        const validData = props.data.filter(item => 
-          item && 
-          item.date && 
-          item.open !== undefined && item.open !== null &&
-          item.high !== undefined && item.high !== null &&
-          item.low !== undefined && item.low !== null &&
-          item.close !== undefined && item.close !== null
-        );
-        
-        // Make sure we have valid data before creating the chart
-        if (!validData.length) {
-          console.warn('No valid data points for candlestick chart');
-          return;
-        }
-        
-        const data = validData.map(item => ({
-          x: dayjs(item.date).format('MMM D'),
-          o: item.open,
-          h: item.high,
-          l: item.low,
-          c: item.close
-        }));
-        
-        const colors = data.map(item => item.o > item.c ? '#ff5252' : '#00c853');
-        
-        chart.value = new Chart(ctx, {
-          type: 'bar',
-          data: {
-            labels: data.map(item => item.x),
-            datasets: [{
-              label: 'Price',
-              data: data.map((item, index) => {
-                return {
-                  x: index,
-                  y: [item.l, item.o, item.c, item.h]
-                };
-              }),
-              backgroundColor: colors
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: {
-                display: false
-              },
-              tooltip: {
-                callbacks: {
-                  label: function(context) {
-                    const dataIndex = context.dataIndex;
-                    const item = data[dataIndex];
-                    return [
-                      `Open: $${item.o.toFixed(2)}`,
-                      `High: $${item.h.toFixed(2)}`,
-                      `Low: $${item.l.toFixed(2)}`,
-                      `Close: $${item.c.toFixed(2)}`
-                    ];
-                  }
-                }
-              }
-            },
-            scales: {
-              x: {
-                grid: {
-                  display: false
-                }
-              },
-              y: {
-                grid: {
-                  color: 'rgba(0, 0, 0, 0.05)'
-                },
-                ticks: {
-                  callback: function(value) {
-                    return '$' + value.toFixed(2);
-                  }
-                }
-              }
-            },
-            interaction: {
-              mode: 'index',
-              intersect: false
-            }
-          }
-        });
-      } catch (error) {
-        console.error('Error rendering candlestick chart:', error);
-      }
+
+    // Форматирование данных для графика
+    const formatChartData = (data) => {
+      if (!data || data.length === 0) return [];
+
+      return data.map(item => ({
+        time: typeof item.date === 'string' ? item.date : new Date(item.date).toISOString().split('T')[0],
+        open: Number(item.open),
+        high: Number(item.high),
+        low: Number(item.low),
+        close: Number(item.close),
+        volume: item.volume ? Number(item.volume) : undefined
+      }));
     };
-    
-    const destroyChart = () => {
+
+    // Инициализация графика
+    const initChart = () => {
+      if (!chartContainer.value) return;
+
+      // Очищаем предыдущий график, если он существует
       if (chart.value) {
-        chart.value.destroy();
+        chart.value.remove();
         chart.value = null;
       }
+
+      const container = chartContainer.value;
+
+      chart.value = createChart(container, {
+        width: container.clientWidth,
+        height: container.clientHeight || 400,
+        layout: {
+          backgroundColor: '#ffffff',
+          textColor: '#333333',
+        },
+        grid: {
+          vertLines: {
+            color: 'rgba(197, 203, 206, 0.5)',
+          },
+          horzLines: {
+            color: 'rgba(197, 203, 206, 0.5)',
+          },
+        },
+        timeScale: {
+          timeVisible: true,
+          secondsVisible: false,
+        },
+        crosshair: {
+          mode: 1,
+          vertLine: {
+            width: 1,
+            color: 'rgba(224, 227, 235, 0.8)',
+            style: 0,
+          },
+          horzLine: {
+            width: 1,
+            color: 'rgba(224, 227, 235, 0.8)',
+            style: 0,
+          },
+        },
+      });
+
+      // Настраиваем ResizeObserver для автоматического изменения размера
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
+
+      resizeObserver = new ResizeObserver(entries => {
+        if (entries.length === 0 || !entries[0].contentRect) return;
+        const newWidth = entries[0].contentRect.width;
+
+        if (chart.value) {
+          chart.value.applyOptions({ width: newWidth });
+        }
+      });
+
+      resizeObserver.observe(container);
+
+      renderChart();
     };
-    
-    // Keep track of if this is the initial load
-    const initialLoad = ref(true);
-    
-    // Lifecycle hooks
-    onMounted(() => {
-      console.log('PriceChart mounted, hasData:', hasData.value);
-      
-      // Trigger period change on initial mount only
-      if (initialLoad.value) {
-        console.log('Initial load, requesting data for period:', selectedPeriod.value);
-        // Use a small timeout to ensure the parent is ready to receive events
-        setTimeout(() => {
-          emit('period-change', getPeriodDates(selectedPeriod.value));
-          initialLoad.value = false;
-        }, 100);
+
+    // Отрисовка графика согласно выбранному типу
+    const renderChart = () => {
+      if (!chart.value || !hasData.value) return;
+
+      // Удаляем предыдущие серии (если они есть)
+      if (candleSeries && chart.value) {
+        try {
+          chart.value.removeSeries(candleSeries);
+        } catch(e) {
+          console.error("Failed to remove candleSeries:", e);
+        }
+        candleSeries = null;
       }
-      
-      // If we already have data, attempt to render the chart
-      if (hasData.value && !chart.value) {
-        console.log('Data already available on mount, rendering chart');
-        // Small delay to ensure DOM is ready
-        setTimeout(() => {
-          renderChart();
-        }, 150);
+
+      if (lineSeries && chart.value) {
+        try {
+          chart.value.removeSeries(lineSeries);
+        } catch(e) {
+          console.error("Failed to remove lineSeries:", e);
+        }
+        lineSeries = null;
       }
-    });
-    
-    onUnmounted(() => {
-      destroyChart();
-    });
-    
-    // Watch for data changes to update the chart
-    watch(() => props.data, (newData) => {
-      console.log('Chart data updated:', newData?.length || 0, 'data points');
-      
-      // Always destroy existing chart to prevent duplicates
-      if (chart.value) {
-        destroyChart();
+
+      if (volumeSeries && chart.value) {
+        try {
+          chart.value.removeSeries(volumeSeries);
+        } catch(e) {
+          console.error("Failed to remove volumeSeries:", e);
+        }
+        volumeSeries = null;
       }
-      
-      // Make sure the component is still mounted before trying to render
-      // and also ensure there's actually data to display
-      if (chartCanvas.value && hasData.value) {
-        console.log('Rendering chart with', newData?.length || 0, 'data points');
-        // Delay the rendering slightly to ensure the DOM is ready
-        setTimeout(() => {
-          renderChart();
-        }, 50);
+
+      // Форматирование данных для графика
+      const formattedData = formatChartData(props.data);
+
+      if (chartType.value === 'candlestick') {
+        // Создаем свечной график
+        try {
+          candleSeries = chart.value.addCandlestickSeries({
+            upColor: '#26a69a',
+            downColor: '#ef5350',
+            borderVisible: false,
+            wickUpColor: '#26a69a',
+            wickDownColor: '#ef5350',
+          });
+
+          candleSeries.setData(formattedData);
+
+          // Добавляем серию объема под свечами, если данные содержат объем
+          if (formattedData.length > 0 && 'volume' in formattedData[0]) {
+            volumeSeries = chart.value.addHistogramSeries({
+              color: '#26a69a',
+              priceFormat: {
+                type: 'volume',
+              },
+              priceScaleId: '', // Отдельная шкала для объема
+              scaleMargins: {
+                top: 0.8, // Отступ сверху
+                bottom: 0,
+              },
+            });
+
+            const volumeData = formattedData.map(item => ({
+              time: item.time,
+              value: item.volume || 0,
+              color: item.close >= item.open ? '#26a69a' : '#ef5350'
+            }));
+
+            volumeSeries.setData(volumeData);
+          }
+        } catch(e) {
+          console.error("Failed to create candlestick series:", e);
+        }
       } else {
-        console.log('Not rendering chart: Canvas exists:', !!chartCanvas.value, 'Has data:', hasData.value);
+        // Создаем линейный график
+        try {
+          // Используем addAreaSeries вместо addLineSeries, если это нужно
+          // или проверьте документацию для правильного метода
+          lineSeries = chart.value.addLineSeries({
+            lineColor: '#2196F3',
+            topColor: 'rgba(33, 150, 243, 0.4)',
+            bottomColor: 'rgba(33, 150, 243, 0.1)',
+            lineWidth: 2,
+          });
+
+          // Для линейного графика нужны только время и цена закрытия
+          const lineData = formattedData.map(item => ({
+            time: item.time,
+            value: item.close
+          }));
+
+          lineSeries.setData(lineData);
+        } catch(e) {
+          console.error("Failed to create line series:", e);
+          // Если не сработал addAreaSeries, попробуем addBaselineSeries
+          try {
+            lineSeries = chart.value.addBaselineSeries({
+              baseValue: { type: 'price', price: Math.min(...formattedData.map(item => item.close)) },
+              topLineColor: '#2196F3',
+              topFillColor1: 'rgba(33, 150, 243, 0.4)',
+              topFillColor2: 'rgba(33, 150, 243, 0.1)',
+              lineWidth: 2,
+            });
+
+            const lineData = formattedData.map(item => ({
+              time: item.time,
+              value: item.close
+            }));
+
+            lineSeries.setData(lineData);
+          } catch(e2) {
+            console.error("Failed to create baseline series as fallback:", e2);
+          }
+        }
       }
-    }, { deep: true });
-    
-    // Watch for loading state changes
-    watch(() => props.loading, (isLoading) => {
-      console.log('Chart loading state changed:', isLoading);
-      // When loading finishes, check if we need to render the chart
-      if (!isLoading && hasData.value && !chart.value) {
-        setTimeout(() => {
-          renderChart();
-        }, 50);
+
+      try {
+        // Автоматически подгоняем масштаб для отображения всех данных
+        if (chart.value) {
+          chart.value.timeScale().fitContent();
+        }
+      } catch(e) {
+        console.error("Failed to fit content:", e);
+      }
+    };
+
+    // Жизненный цикл компонента
+    onMounted(() => {
+      nextTick(() => {
+        initChart();
+      });
+
+      // Добавляем обработчик события resize
+      window.addEventListener('resize', handleResize);
+
+      // Инициируем загрузку данных, если selectedPeriod не соответствует значению по умолчанию
+      if (selectedPeriod.value !== '1m') {
+        emit('period-change', getPeriodDates(selectedPeriod.value));
+      } else {
+        // Иначе просим загрузить данные по умолчанию
+        emit('period-change', getPeriodDates('1m'));
       }
     });
-    
+
+    onBeforeUnmount(() => {
+      // Удаляем обработчик события resize
+      window.removeEventListener('resize', handleResize);
+
+      // Отключаем ResizeObserver
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+        resizeObserver = null;
+      }
+
+      // Удаляем график
+      if (chart.value) {
+        chart.value.remove();
+        chart.value = null;
+      }
+    });
+
+    // Следим за изменениями данных
+    watch(() => props.data, () => {
+      nextTick(() => {
+        if (hasData.value) {
+          renderChart();
+        }
+      });
+    }, { deep: true });
+
+    // Следим за изменением контейнера
+    watch(() => chartContainer.value, () => {
+      nextTick(() => {
+        initChart();
+      });
+    });
+
     return {
-      chartCanvas,
       chartContainer,
-      selectedPeriod,
       chartType,
+      selectedPeriod,
       periodOptions,
       chartTypes,
-      title,
       hasData,
+      title,
       setPeriod,
-      setChartType
+      setChartType,
+      handleResize  // Обязательно возвращаем handleResize в return объекте
     };
   }
 };
 </script>
 
-<style lang="scss" scoped>
+<style scoped>
 .price-chart {
+  display: flex;
+  flex-direction: column;
   width: 100%;
-  background-color: $bg-primary;
-  border-radius: $border-radius;
-  box-shadow: $box-shadow;
-  padding: $spacing-md;
-  margin-bottom: $spacing-lg;
-  
-  &__header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: $spacing-md;
-    flex-wrap: wrap;
-    
-    @media (max-width: $breakpoint-sm) {
-      flex-direction: column;
-      align-items: flex-start;
-    }
-  }
-  
-  &__title {
-    font-size: $font-size-lg;
-    font-weight: 600;
-    margin: 0;
-    color: $secondary-color;
-  }
-  
-  &__controls {
-    display: flex;
-    align-items: center;
-    
-    @media (max-width: $breakpoint-sm) {
-      margin-top: $spacing-md;
-      width: 100%;
-      justify-content: space-between;
-    }
-  }
-  
-  &__period-selector,
-  &__type-selector {
-    display: flex;
-    
-    .period-button,
-    .chart-type-button {
-      background: transparent;
-      border: 1px solid $text-disabled;
-      color: $text-secondary;
-      font-size: $font-size-sm;
-      padding: $spacing-xs $spacing-sm;
-      cursor: pointer;
-      transition: $transition-quick;
-      
-      &:hover {
-        background-color: rgba($primary-color, 0.05);
-      }
-      
-      &.active {
-        background-color: $primary-color;
-        color: white;
-        border-color: $primary-color;
-      }
-      
-      &:first-child {
-        border-top-left-radius: $spacing-xs;
-        border-bottom-left-radius: $spacing-xs;
-      }
-      
-      &:last-child {
-        border-top-right-radius: $spacing-xs;
-        border-bottom-right-radius: $spacing-xs;
-      }
-    }
-  }
-  
-  &__type-selector {
-    margin-left: $spacing-md;
-  }
-  
-  &__container {
-    position: relative;
-    height: 400px;
-    width: 100%;
-  }
-  
-  &__no-data,
-  &__loading {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    color: $text-secondary;
-    font-size: $font-size-lg;
-    background-color: rgba($bg-primary, 0.8);
-  }
-  
-  &__loading {
-    font-size: 2rem;
-    color: $primary-color;
-  }
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.price-chart__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.price-chart__title {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.price-chart__controls {
+  display: flex;
+  gap: 15px;
+}
+
+.price-chart__period-selector {
+  display: flex;
+  gap: 5px;
+}
+
+.price-chart__type-selector {
+  display: flex;
+  gap: 5px;
+}
+
+.period-button,
+.chart-type-button {
+  padding: 6px 10px;
+  background-color: #f5f5f5;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+.period-button:hover,
+.chart-type-button:hover {
+  background-color: #e0e0e0;
+}
+
+.period-button.active,
+.chart-type-button.active {
+  background-color: #2196F3;
+  color: white;
+}
+
+.price-chart__container {
+  width: 100%;
+  height: 400px; /* Важно: фиксированная высота для графика */
+  position: relative;
+}
+
+.price-chart__loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: #2196F3;
+}
+
+.price-chart__no-data {
+  width: 100%;
+  height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-style: italic;
 }
 </style>

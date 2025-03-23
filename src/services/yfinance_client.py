@@ -71,9 +71,42 @@ class YFinanceClient:
         def fetch():
             ticker = yf.Ticker(ticker_symbol)
             history_df = ticker.history(start=start, end=end, interval=interval)
-            if history_df is not None:
+            if history_df is not None and not history_df.empty:
+                # Fill NaN values with None to properly handle them in JSON serialization
+                history_df = history_df.fillna(None)
+                
+                # Reset index to make the Date a column
+                history_df = history_df.reset_index()
+                
+                # Convert datetime objects to ISO format strings for JSON serialization
+                if 'Date' in history_df.columns:
+                    history_df['Date'] = history_df['Date'].dt.strftime('%Y-%m-%d')
+                
                 # 'orient="records"' returns a list of dictionaries with column names as keys.
-                return convert_keys_to_str(history_df.to_dict(orient='records'))
+                result = convert_keys_to_str(history_df.to_dict(orient='records'))
+                
+                # Normalize the data format to match frontend expectations
+                normalized_result = []
+                for item in result:
+                    normalized_item = {
+                        'date': item.get('Date'),
+                        'open': item.get('Open'),
+                        'high': item.get('High'),
+                        'low': item.get('Low'),
+                        'close': item.get('Close'),
+                        'volume': item.get('Volume')
+                    }
+                    # Remove any None values
+                    normalized_result.append({k: v for k, v in normalized_item.items() if v is not None})
+                
+                result = normalized_result
+                
+                # Log some sample data for debugging
+                logger.info(f"Retrieved {len(result)} history records for {ticker_symbol}")
+                if result and len(result) > 0:
+                    logger.info(f"Sample data point: {result[0]}")
+                
+                return result
             return []
 
         return self._cache_get_set(key, fetch)

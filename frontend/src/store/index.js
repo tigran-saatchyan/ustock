@@ -3,6 +3,7 @@ import tickerModule from './modules/ticker';
 import financialsModule from './modules/financials';
 import optionsModule from './modules/options';
 import authModule from './modules/auth';
+import personalFinanceModule from './modules/personal-finance';
 
 export default createStore({
   state: {
@@ -20,6 +21,11 @@ export default createStore({
     recentTickers: state => state.recentTickers,
     favoriteTickers: state => state.favoriteTickers,
     isDarkTheme: state => state.theme === 'dark',
+    getTranslation: () => (key) => {
+      // Gets a translation from a key path (e.g. "finance.accountTypes.bank")
+      const i18n = require('@/i18n').default;
+      return i18n.global.t(key);
+    },
   },
   
   mutations: {
@@ -109,6 +115,20 @@ export default createStore({
       
       // Initialize authentication from localStorage
       dispatch('auth/initAuth');
+      
+      // First load currency settings (has to be done before other personal finance initialization)
+      try {
+        dispatch('personalFinance/loadCurrencySettings');
+      } catch (e) {
+        console.error('Error loading currency settings:', e);
+      }
+      
+      // Then initialize personal finance module
+      try {
+        dispatch('personalFinance/initPersonalFinance');
+      } catch (e) {
+        console.error('Error initializing personal finance module:', e);
+      }
     },
     
     /**
@@ -167,6 +187,7 @@ export default createStore({
     ticker: tickerModule,
     financials: financialsModule,
     options: optionsModule,
-    auth: authModule
+    auth: authModule,
+    personalFinance: personalFinanceModule
   }
 });

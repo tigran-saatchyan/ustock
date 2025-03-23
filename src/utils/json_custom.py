@@ -2,6 +2,7 @@ import json
 import math
 import numpy as np
 import pandas as pd
+from decimal import Decimal
 from rest_framework.renderers import JSONRenderer
 
 class CustomJSONEncoder(json.JSONEncoder):
@@ -10,6 +11,7 @@ class CustomJSONEncoder(json.JSONEncoder):
     This encoder overrides the default method to handle specific data types:
       - Converts pandas.Timestamp objects to their string representation.
       - Replaces NaN values (for both float and numpy.floating types) with None.
+      - Converts Decimal objects to float.
 
     Args:
         obj (Any): The object to be encoded.
@@ -23,6 +25,8 @@ class CustomJSONEncoder(json.JSONEncoder):
         if isinstance(obj, (float, np.floating)):
             if math.isnan(obj):
                 return None
+        if isinstance(obj, Decimal):
+            return float(obj)
         return super().default(obj)
 
 

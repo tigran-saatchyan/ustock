@@ -1,139 +1,150 @@
-import dayjs from 'dayjs';
+/**
+ * Format a number as currency with the specified currency
+ * @param {number} value - The numeric value to format
+ * @param {string} currency - The currency code to use for formatting (default 'USD')
+ * @param {number} decimals - The number of decimal places (default 2)
+ * @returns {string} Formatted currency string
+ */
+export function formatCurrency(value, currency = 'USD', decimals = 2) {
+  if (value === null || value === undefined) return '';
+  
+  try {
+    // Ensure value is a number
+    const numValue = Number(value);
+    if (isNaN(numValue)) {
+      console.error('Invalid value for formatCurrency:', value);
+      return 'Invalid amount';
+    }
+
+    // Get locale from i18n or browser
+    const getLocale = () => {
+      // Try to get it from i18n if available
+      try {
+        if (window.i18n && window.i18n.global) {
+          return window.i18n.global.locale.value || navigator.language || 'en-US';
+        }
+      } catch (e) {
+        console.error('Error accessing i18n locale:', e);
+      }
+      
+      // Fallback to browser locale
+      return navigator.language || 'en-US';
+    };
+    
+    const locale = getLocale();
+    
+    // Ensure currency is valid
+    if (!currency || typeof currency !== 'string') {
+      console.warn('Invalid currency provided to formatCurrency:', currency, 'using USD instead');
+      currency = 'USD';
+    }
+    
+    // Use Intl.NumberFormat for proper currency formatting
+    const formatter = new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals
+    });
+    
+    return formatter.format(numValue);
+  } catch (error) {
+    console.error('Error in formatCurrency:', error, 'value:', value, 'currency:', currency);
+    return 'Error formatting';
+  }
+}
 
 /**
- * Format a number as currency
- * @param {number} value - The number to format
- * @param {string} currency - The currency code
- * @param {number} decimals - The number of decimal places
- * @returns {string} - The formatted currency string
+ * Format a date in the user's locale
+ * @param {string|Date} dateValue - Date to format
+ * @param {object} options - Intl.DateTimeFormat options
+ * @returns {string} Formatted date string
  */
-export const formatCurrency = (value, currency = 'USD', decimals = 2) => {
-  if (value === null || value === undefined || isNaN(value)) {
-    return 'N/A';
-  }
+export function formatDate(dateValue, options = {}) {
+  if (!dateValue) return '';
   
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency,
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals
-  }).format(value);
-};
+  const date = typeof dateValue === 'string' ? new Date(dateValue) : dateValue;
+  
+  // Default formatting options
+  const defaultOptions = {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  };
+  
+  // Merge default options with provided options
+  const mergedOptions = { ...defaultOptions, ...options };
+  
+  // Get locale from i18n or browser
+  const getLocale = () => {
+    // Try to get it from i18n if available
+    try {
+      if (window.i18n && window.i18n.global) {
+        return window.i18n.global.locale.value || navigator.language || 'en-US';
+      }
+    } catch (e) {
+      console.error('Error accessing i18n locale:', e);
+    }
+    
+    // Fallback to browser locale
+    return navigator.language || 'en-US';
+  };
+  
+  const locale = getLocale();
+  
+  return new Intl.DateTimeFormat(locale, mergedOptions).format(date);
+}
 
 /**
- * Format a number with commas and optional decimals
- * @param {number} value - The number to format
- * @param {number} decimals - The number of decimal places
- * @returns {string} - The formatted number
+ * Format a percentage value
+ * @param {number} value - The value to format as a percentage
+ * @param {number} decimals - The number of decimal places (default 1)
+ * @returns {string} Formatted percentage string
  */
-export const formatNumber = (value, decimals = 2) => {
-  if (value === null || value === undefined || isNaN(value)) {
-    return 'N/A';
-  }
+export function formatPercentage(value, decimals = 1) {
+  if (value === null || value === undefined) return '';
   
-  return new Intl.NumberFormat('en-US', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: decimals
-  }).format(value);
-};
-
-/**
- * Format a number as a percentage
- * @param {number} value - The number to format (0.1 = 10%)
- * @param {number} decimals - The number of decimal places
- * @returns {string} - The formatted percentage
- */
-export const formatPercent = (value, decimals = 2) => {
-  if (value === null || value === undefined || isNaN(value)) {
-    return 'N/A';
-  }
+  // Get browser locale
+  const locale = navigator.language || 'en-US';
   
-  return new Intl.NumberFormat('en-US', {
+  // Use Intl.NumberFormat for proper percentage formatting
+  const formatter = new Intl.NumberFormat(locale, {
     style: 'percent',
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals
-  }).format(value);
-};
-
-/**
- * Format a date string
- * @param {string} dateString - The date string to format
- * @param {string} format - The format string (dayjs format)
- * @returns {string} - The formatted date
- */
-export const formatDate = (dateString, format = 'MMM D, YYYY') => {
-  if (!dateString) return 'N/A';
+  });
   
-  return dayjs(dateString).format(format);
-};
+  return formatter.format(value / 100);
+}
 
 /**
- * Format a large number with abbreviations (K, M, B, T)
+ * Format a large number with abbreviations (K, M, B)
  * @param {number} value - The number to format
- * @param {number} decimals - The number of decimal places
- * @returns {string} - The formatted number with abbreviation
+ * @param {number} decimals - The number of decimal places (default 1)
+ * @returns {string} Formatted number string with abbreviation
  */
-export const formatLargeNumber = (value, decimals = 1) => {
-  if (value === null || value === undefined || isNaN(value)) {
-    return 'N/A';
+export function formatLargeNumber(value, decimals = 1) {
+  if (value === null || value === undefined) return '';
+  
+  const formatter = new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals
+  });
+  
+  // Define thresholds and abbreviations
+  const abbreviations = [
+    { threshold: 1e12, abbr: 'T' }, // Trillion
+    { threshold: 1e9, abbr: 'B' },  // Billion
+    { threshold: 1e6, abbr: 'M' },  // Million
+    { threshold: 1e3, abbr: 'K' }   // Thousand
+  ];
+  
+  // Find the appropriate abbreviation
+  const item = abbreviations.find(item => Math.abs(value) >= item.threshold);
+  
+  if (item) {
+    return formatter.format(value / item.threshold) + item.abbr;
   }
   
-  if (value === 0) return '0';
-  
-  const abs = Math.abs(value);
-  const sign = value < 0 ? '-' : '';
-  
-  if (abs >= 1000000000000) {
-    return sign + (abs / 1000000000000).toFixed(decimals) + 'T';
-  }
-  if (abs >= 1000000000) {
-    return sign + (abs / 1000000000).toFixed(decimals) + 'B';
-  }
-  if (abs >= 1000000) {
-    return sign + (abs / 1000000).toFixed(decimals) + 'M';
-  }
-  if (abs >= 1000) {
-    return sign + (abs / 1000).toFixed(decimals) + 'K';
-  }
-  
-  return sign + abs.toFixed(decimals);
-};
-
-/**
- * Get CSS class for a numeric value (positive/negative)
- * @param {number} value - The numeric value
- * @returns {string} - The CSS class
- */
-export const getValueColorClass = (value) => {
-  if (value === null || value === undefined || isNaN(value)) {
-    return '';
-  }
-  
-  return value >= 0 ? 'financial-value--positive' : 'financial-value--negative';
-};
-
-/**
- * Add plus sign to positive numbers
- * @param {number} value - The number to format
- * @returns {string} - The formatted number with sign
- */
-export const formatWithSign = (value) => {
-  if (value === null || value === undefined || isNaN(value)) {
-    return 'N/A';
-  }
-  
-  return value > 0 ? `+${value}` : `${value}`;
-};
-
-/**
- * Get a color based on a value (for charts, etc.)
- * @param {number} value - The value to get color for
- * @returns {string} - The color code
- */
-export const getValueColor = (value) => {
-  if (value === null || value === undefined || isNaN(value)) {
-    return '#757575';
-  }
-  
-  return value >= 0 ? '#00c853' : '#ff5252';
-};
+  return formatter.format(value);
+}

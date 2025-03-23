@@ -6,7 +6,7 @@
           <img src="@/assets/icons/bitmap-transparent.png" alt="StockTic Logo" class="auth-logo">
           <div class="auth-title">StockTic</div>
         </div>
-        <div class="auth-subtitle">Financial Market Data Platform</div>
+        <div class="auth-subtitle">{{ $t('auth.platformTitle') }}</div>
         <div class="auth-decoration">
           <div class="auth-decoration__chart">
             <div class="chart-line"></div>
@@ -16,8 +16,8 @@
       </div>
       <div class="auth-card__right">
         <div class="login-form">
-          <h1 class="login-form__title">Welcome back</h1>
-          <p class="login-form__subtitle">Sign in to continue to StockTic</p>
+          <h1 class="login-form__title">{{ $t('auth.welcomeBack') }}</h1>
+          <p class="login-form__subtitle">{{ $t('auth.signInToContinue') }}</p>
           
           <div class="alert alert--error" v-if="error">
             <i class="pi pi-exclamation-triangle"></i>
@@ -25,7 +25,7 @@
           </div>
           
           <div class="input-group">
-            <label for="username" class="input-label">Username</label>
+            <label for="username" class="input-label">{{ $t('auth.username') }}</label>
             <div class="input-wrapper">
               <i class="pi pi-user"></i>
               <input
@@ -33,7 +33,7 @@
                 v-model="username"
                 type="text"
                 class="input-field"
-                placeholder="Enter your username"
+                :placeholder="$t('auth.enterUsername')"
                 @keyup.enter="login"
                 :disabled="loading"
               />
@@ -41,7 +41,7 @@
           </div>
           
           <div class="input-group">
-            <label for="password" class="input-label">Password</label>
+            <label for="password" class="input-label">{{ $t('auth.password') }}</label>
             <div class="input-wrapper">
               <i class="pi pi-lock"></i>
               <input
@@ -49,7 +49,7 @@
                 v-model="password"
                 :type="showPassword ? 'text' : 'password'"
                 class="input-field"
-                placeholder="Enter your password"
+                :placeholder="$t('auth.enterPassword')"
                 @keyup.enter="login"
                 :disabled="loading"
               />
@@ -66,7 +66,7 @@
           <div class="login-options">
             <div class="checkbox-wrapper">
               <input type="checkbox" id="remember" v-model="rememberMe" />
-              <label for="remember">Remember me</label>
+              <label for="remember">{{ $t('auth.rememberMe') }}</label>
             </div>
           </div>
           
@@ -75,12 +75,12 @@
             @click="login"
             :disabled="loading"
           >
-            <span v-if="!loading">Sign In</span>
+            <span v-if="!loading">{{ $t('auth.signIn') }}</span>
             <div v-else class="btn-loader"></div>
           </button>
           
           <div class="login-footer">
-            <p>Don't have an account? <a href="#" @click.prevent>Contact admin</a></p>
+            <p>{{ $t('auth.noAccount') }} <a href="#" @click.prevent>{{ $t('auth.contactAdmin') }}</a></p>
           </div>
         </div>
       </div>
@@ -92,6 +92,7 @@
 import { ref, computed, watch } from 'vue';
 import { useStore } from 'vuex';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 
 export default {
   name: 'LoginView',
@@ -99,6 +100,7 @@ export default {
   setup() {
     const store = useStore();
     const router = useRouter();
+    const { t } = useI18n();
     
     // Form fields
     const username = ref('');
@@ -127,7 +129,7 @@ export default {
     const login = async () => {
       if (!username.value || !password.value) {
         store.dispatch('auth/clearError');
-        store.commit('auth/SET_ERROR', 'Please enter both username and password.');
+        store.commit('auth/SET_ERROR', t('auth.validation.bothRequired'));
         return;
       }
       
@@ -154,7 +156,8 @@ export default {
       rememberMe,
       loading,
       error,
-      login
+      login,
+      t
     };
   }
 };
