@@ -1,10 +1,12 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.conf import settings
+from encrypted_model_fields.fields import EncryptedCharField
 
 
 class Category(models.Model):
     """Category for financial transactions.
-    
+
     Args:
         name: The name of the category.
         user: The user who created the category.
@@ -20,13 +22,13 @@ class Category(models.Model):
     is_income = models.BooleanField(default=False)
     color = models.CharField(max_length=7, default="#e08200")  # HEX color
     icon = models.CharField(max_length=50, blank=True, null=True)  # Icon name
-    
+
     class Meta:
         verbose_name_plural = "Categories"
-    
+
     def __str__(self):
         return self.name
-        
+
     def is_subcategory(self):
         """Returns True if this is a subcategory."""
         return self.parent is not None
@@ -34,12 +36,12 @@ class Category(models.Model):
 
 class Account(models.Model):
     """Financial account according to financial framework.
-    
+
     In the financial framework:
     - Assets put money in your pocket (generate income)
     - Liabilities take money out of your pocket (generate expenses)
     - Income sources provide money in exchange for your time
-    
+
     Args:
         name: The name of the account.
         user: The user who owns the account.
@@ -80,7 +82,7 @@ class Account(models.Model):
         ('other_debt', 'Other Debt'),
         ('other', 'Other'),
     )
-    
+
     name = models.CharField(max_length=100)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     balance = models.DecimalField(max_digits=15, decimal_places=2, default=0)
@@ -93,7 +95,7 @@ class Account(models.Model):
     is_income_source = models.BooleanField(default=False)
     is_cash_flow_generating = models.BooleanField(default=False)
     monthly_cash_flow = models.DecimalField(max_digits=15, decimal_places=2, default=0)
-    
+
     def __str__(self):
         return self.name
 
@@ -104,7 +106,7 @@ class Account(models.Model):
 
 class Transaction(models.Model):
     """Financial transaction.
-    
+
     Args:
         user: The user who made the transaction.
         amount: Transaction amount.
@@ -126,14 +128,14 @@ class Transaction(models.Model):
     is_expense = models.BooleanField(default=True)
     is_income = models.BooleanField(default=False)
     is_transfer = models.BooleanField(default=False)
-    
+
     def __str__(self):
         return f"{self.description} - {self.amount}"
 
 
 class Budget(models.Model):
     """Budget for expense categories.
-    
+
     Args:
         user: The user who created the budget.
         category: Category this budget applies to.
@@ -150,7 +152,7 @@ class Budget(models.Model):
         ('GEL', 'Georgian Lari'),
         ('RUB', 'Russian Ruble'),
     )
-    
+
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     category = models.ForeignKey(Category, on_delete=models.CASCADE)
     amount = models.DecimalField(max_digits=15, decimal_places=2)
@@ -160,17 +162,17 @@ class Budget(models.Model):
     is_parent_budget = models.BooleanField(default=False)
     parent_budget = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, 
                                       related_name='subcategory_budgets')
-    
+
     class Meta:
         unique_together = ('user', 'category', 'month', 'year')
-    
+
     def __str__(self):
         return f"{self.category.name} - {self.month}/{self.year}: {self.amount} {self.currency}"
 
 
 class SavingsGoal(models.Model):
     """Savings goal.
-    
+
     Args:
         user: The user who created the goal.
         name: Name of the goal.
@@ -186,6 +188,39 @@ class SavingsGoal(models.Model):
     color = models.CharField(max_length=7, default="#f7c73a")  # HEX color
     icon = models.CharField(max_length=50, blank=True, null=True)  # Icon name
     is_achieved = models.BooleanField(default=False)
-    
+
     def __str__(self):
         return self.name
+
+
+class CryptoExchangeAPI(models.Model):
+    """Crypto exchange API keys.
+
+    Args:
+        user: The user who owns the API keys.
+        exchange: The name of the exchange (e.g., 'binance', 'coinbase').
+        api_key: The API key for the exchange.
+        api_secret: The API secret for the exchange.
+        is_active: Whether these API keys are active.
+    """
+    EXCHANGE_CHOICES = (
+        ('binance', 'Binance'),
+        ('coinbase', 'Coinbase'),
+        ('kraken', 'Kraken'),
+        ('kucoin', 'KuCoin'),
+    )
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    exchange = models.CharField(max_length=20, choices=EXCHANGE_CHOICES, default='binance')
+    api_key = EncryptedCharField(max_length=255)
+    api_secret = EncryptedCharField(max_length=255)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('user', 'exchange')
+        verbose_name_plural = "Crypto Exchange APIs"
+
+    def __str__(self):
+        return f"{self.user.username} - {self.exchange}"

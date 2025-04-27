@@ -11,6 +11,10 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -164,3 +168,5 @@ REST_FRAMEWORK = {
     'NON_FIELD_ERRORS_KEY': 'error',  # This will return validation errors with 'error' key
     'DEFAULT_THROTTLE_CLASSES': []
 }
+
+FIELD_ENCRYPTION_KEY = os.environ.get('FIELD_ENCRYPTION_KEY', '')
